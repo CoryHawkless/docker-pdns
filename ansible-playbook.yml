@@ -3,6 +3,7 @@
   vars:
     pdns_master_ip: 172.5.0.20
     pdns_slave_ip: 172.5.0.21
+    pdns_recursor_ip: 172.5.0.22
     wipe: false
     c_state: '{{ "absent" if wipe | bool else "started" }}'
     i_state: present
@@ -54,10 +55,19 @@
         networks_cli_compatible: true
         networks:
           - name: pdns-net
+            ipv4_address: '{{ pdns_recursor_ip }}'
         volumes:
           - /etc/localtime:/etc/localtime:ro
+        published_ports:
+          - '53:53/udp'
+          - '53:53/tcp'
+        env:
+          PDNS_forward-zones: "acs2.lan={{pdns_master_ip}}:53"
+          PDNS_allow-from: "0.0.0.0/0" 
+          #"10.0.0.0/8"
       tags:
         - pdns-recursor
+
 
     - name: db
       docker_container:
@@ -153,6 +163,7 @@
           PDNS_only_notify: '{{ pdns_slave_ip }}'
       tags:
         - pdns
+          
 
     - name: pdns slave
       docker_container:
